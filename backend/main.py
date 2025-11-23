@@ -14,6 +14,17 @@ from .summary import generate_session_summary
 
 app = FastAPI()
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],            # Allow all frontends (change to your domain later)
+    allow_credentials=True,
+    allow_methods=["*"],            # IMPORTANT for OPTIONS
+    allow_headers=["*"],            # IMPORTANT for Content-Type
+)
+
+
 # ---------------------------------------------
 # Model Client
 # ---------------------------------------------
