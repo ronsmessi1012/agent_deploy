@@ -5,12 +5,12 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import type { EndInterviewResponse } from '@/lib/api';
+import type { SessionSummary } from '@/lib/api';
 
 const Report = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { summary } = location.state as { summary: EndInterviewResponse } || {};
+  const { summary } = location.state as { summary: SessionSummary } || {};
 
   if (!summary) {
     navigate('/');
@@ -62,17 +62,18 @@ const Report = () => {
           <div className="grid md:grid-cols-2 gap-4">
             {Object.entries(summary.avg_scores).map(([key, value]) => {
               if (key === 'overall') return null;
+              const score = value as number;
               return (
                 <div key={key} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium capitalize text-foreground">
                       {key.replace('_', ' ')}
                     </span>
-                    <span className={`text-lg font-bold ${getScoreColor(value)}`}>
-                      {value.toFixed(1)}
+                    <span className={`text-lg font-bold ${getScoreColor(score)}`}>
+                      {score.toFixed(1)}
                     </span>
                   </div>
-                  <Progress value={value * 20} className="h-2" />
+                  <Progress value={score * 20} className="h-2" />
                 </div>
               );
             })}
@@ -108,7 +109,7 @@ const Report = () => {
           <Card className="p-6 border-l-4 border-primary">
             <h3 className="text-lg font-semibold text-primary mb-3">Improvements</h3>
             <ul className="space-y-2">
-              {summary.improvements.map((improvement, index) => (
+              {summary.improvement_plan.map((improvement, index) => (
                 <li key={index} className="text-sm text-foreground flex items-start gap-2">
                   <span className="text-primary mt-0.5">→</span>
                   <span>{improvement}</span>

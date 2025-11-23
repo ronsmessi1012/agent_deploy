@@ -46,14 +46,19 @@ export interface PracticeRecommendations {
   resources: string[];
 }
 
-export interface EndInterviewResponse {
+export interface SessionSummary {
   avg_scores: QuestionScore;
   transcript: TranscriptItem[];
   overall_feedback: string;
   strengths: string[];
   weaknesses: string[];
-  improvements: string[];
+  improvement_plan: string[];
   practice: PracticeRecommendations;
+}
+
+export interface EndInterviewResponse {
+  session_id: string;
+  summary: SessionSummary;
 }
 
 class InterviewAPI {
@@ -75,7 +80,7 @@ class InterviewAPI {
 
     try {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-      
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
@@ -97,6 +102,22 @@ class InterviewAPI {
 
   async endInterview(data: EndInterviewRequest): Promise<EndInterviewResponse> {
     return this.request<EndInterviewResponse>('/end', 'POST', data);
+  }
+
+  async generateSpeech(text: string): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/api/tts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`TTS API error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.blob();
   }
 }
 

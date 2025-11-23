@@ -10,6 +10,7 @@ import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { interviewAPI } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface TranscriptEntry {
   type: 'question' | 'answer';
@@ -21,24 +22,25 @@ const Interview = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const { sessionId, firstQuestion } = location.state || {};
-  
+
   const [currentQuestion, setCurrentQuestion] = useState(firstQuestion || '');
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [questionCount, setQuestionCount] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+  const [isEnding, setIsEnding] = useState(false);
+
   const { isRecording, audioLevel, startRecording, stopRecording, error: recorderError } = useAudioRecorder();
   const { transcript: liveTranscript, startListening, stopListening, resetTranscript, isSupported: isSpeechSupported } = useSpeechRecognition();
-  const { isSpeaking: isAgentSpeaking, speak, stop: stopSpeech } = useSpeechSynthesis();
+  const { isSpeaking: isAgentSpeaking, agentAudioLevel, speak, stop: stopSpeech } = useSpeechSynthesis();
 
   const handleSilenceDetected = useCallback(async () => {
     if (!isRecording || isProcessing) return;
-    
+
     stopRecording();
     stopListening();
-    
+
     const answer = liveTranscript.trim();
     if (!answer) {
       toast({
@@ -70,9 +72,9 @@ const Interview = () => {
         setCurrentQuestion(response.text);
         setTranscript(prev => [...prev, { type: 'question', text: response.text, timestamp: new Date() }]);
         setQuestionCount(prev => prev + 1);
-        
+
         await speak(response.text);
-        
+
         setTimeout(() => {
           startRecording();
           startListening();
@@ -107,7 +109,7 @@ const Interview = () => {
     const initInterview = async () => {
       setTranscript([{ type: 'question', text: firstQuestion, timestamp: new Date() }]);
       await speak(firstQuestion);
-      
+
       setTimeout(() => {
         startRecording();
         startListening();
@@ -124,13 +126,14 @@ const Interview = () => {
   }, []);
 
   const handleEndInterview = async () => {
+    setIsEnding(true);
     stopRecording();
     stopListening();
     stopSpeech();
-    
+
     try {
-      const summary = await interviewAPI.endInterview({ session_id: sessionId });
-      navigate('/report', { state: { summary, transcript } });
+      const response = await interviewAPI.endInterview({ session_id: sessionId });
+      navigate('/report', { state: { summary: response.summary, transcript } });
     } catch (error) {
       console.error('Error ending interview:', error);
       toast({
@@ -138,6 +141,7 @@ const Interview = () => {
         description: 'Failed to end interview properly',
         variant: 'destructive',
       });
+      setIsEnding(false);
     }
   };
 
@@ -166,13 +170,23 @@ const Interview = () => {
             <h1 className="text-2xl font-bold text-foreground">Interview in Progress</h1>
             <p className="text-muted-foreground">Question {questionCount}</p>
           </div>
-          <Button
-            variant="destructive"
-            onClick={handleEndInterview}
-            disabled={isProcessing}
-          >
-            End Interview
-          </Button>
+          <div className="flex gap-2">
+            <ThemeToggle />
+            <Button
+              variant="destructive"
+              onClick={handleEndInterview}
+              disabled={isProcessing || isEnding}
+            >
+              {isEnding ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Generating Report...
+                </>
+              ) : (
+                'End Interview'
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Main Interview Area */}
@@ -182,9 +196,9 @@ const Interview = () => {
             <VoiceWave
               isUserSpeaking={isRecording && !isProcessing}
               isAgentSpeaking={isAgentSpeaking}
-              level={audioLevel}
+              level={Math.max(audioLevel, agentAudioLevel)}
             />
-            
+
             <div className="text-center space-y-2 max-w-md">
               <h2 className="text-lg font-semibold text-foreground">Current Question:</h2>
               <p className="text-muted-foreground">{currentQuestion}</p>
@@ -212,11 +226,10 @@ const Interview = () => {
                 {transcript.map((entry, index) => (
                   <div
                     key={index}
-                    className={`p-4 rounded-lg ${
-                      entry.type === 'question'
-                        ? 'bg-primary/10 border-l-4 border-primary'
-                        : 'bg-secondary border-l-4 border-accent'
-                    }`}
+                    className={`p-4 rounded-lg ${entry.type === 'question'
+                      ? 'bg-primary/10 border-l-4 border-primary'
+                      : 'bg-secondary border-l-4 border-accent'
+                      }`}
                   >
                     <p className="text-xs text-muted-foreground mb-1">
                       {entry.type === 'question' ? '🤖 Interviewer' : '👤 You'} •{' '}

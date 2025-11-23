@@ -69,3 +69,5 @@ urllib3==2.5.0
 uvicorn==0.38.0
 xxhash==3.6.0
 zstandard==0.25.0
+murf==2.2.4
+gTTS==2.5.1

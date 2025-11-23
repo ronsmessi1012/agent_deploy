@@ -3,6 +3,12 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from dotenv import load_dotenv
+import os
+
+# Load .env from the backend directory
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path)
 
 # Internal modules
 from .llm import OllamaClient, DummyModelClient
@@ -10,7 +16,10 @@ from .session import create_session, get_session
 from .roles_loader import load_role, pick_seed_question
 from .actions import decide_followup_rule, llm_decide_and_generate
 from .feedback import generate_feedback
+from .feedback import generate_feedback
 from .summary import generate_session_summary
+from .tts import generate_speech
+from fastapi.responses import Response
 
 app = FastAPI()
 
@@ -48,6 +57,10 @@ class FeedbackRequest(BaseModel):
     question: str
     answer: str
     role: str
+
+class TTSRequest(BaseModel):
+    text: str
+    voice_id: Optional[str] = "en-US-naomi"
 
 
 # ---------------------------------------------
@@ -132,8 +145,12 @@ def start_interview(req: StartRequest):
     current = session.get_current_seed()
     if current:
         session.questions.append(current)
+        
+    # Prepend welcome message
+    welcome_msg = "Hi! I'm your AI interviewer today. I'm looking forward to getting to know you. Let's start with... "
+    full_response = f"{welcome_msg}{current}" if current else welcome_msg
 
-    return {"session_id": session_id, "next_question": current}
+    return {"session_id": session_id, "next_question": full_response}
 
 
 # ---------------------------------------------
@@ -305,3 +322,15 @@ def end_interview(req: EndRequest):
     summary = generate_session_summary(session)
 
     return {"session_id": session_id, "summary": summary}
+
+
+# ---------------------------------------------
+# /api/tts — Generate Speech using Murf AI
+# ---------------------------------------------
+@app.post("/api/tts")
+def tts_endpoint(req: TTSRequest):
+    try:
+        audio_content = generate_speech(req.text, req.voice_id)
+        return Response(content=audio_content, media_type="audio/mpeg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

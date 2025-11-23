@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import Waves from 'react-animated-waves';
+import { useTheme } from 'next-themes';
 
 interface VoiceWaveProps {
   isUserSpeaking: boolean;
@@ -7,83 +9,62 @@ interface VoiceWaveProps {
 }
 
 export const VoiceWave = ({ isUserSpeaking, isAgentSpeaking, level }: VoiceWaveProps) => {
-  const [rings, setRings] = useState([1, 2, 3]);
-  const isActive = isUserSpeaking || isAgentSpeaking;
-  
-  const baseSize = 200;
-  const scaleFactor = 1 + (level * 0.3);
-  
-  const activeColor = isUserSpeaking ? 'wave-primary' : isAgentSpeaking ? 'accent' : 'wave-primary';
+  const { theme } = useTheme();
+  const [amplitude, setAmplitude] = useState(0);
+
+  useEffect(() => {
+    // Map level (0-1) to amplitude (0-40)
+    // Add some baseline movement if active
+    const isActive = isUserSpeaking || isAgentSpeaking;
+    const targetAmp = isActive ? Math.max(10, level * 50) : 2;
+    setAmplitude(targetAmp);
+  }, [level, isUserSpeaking, isAgentSpeaking]);
+
+  const getColors = () => {
+    const isDark = theme === 'dark';
+
+    if (isUserSpeaking) {
+      // Primary/Teal colors
+      return isDark
+        ? ["#2DD4BF", "#0F766E", "#2DD4BF"] // Teal-400, Teal-700, Teal-400
+        : ["#0D9488", "#CCFBF1", "#0D9488"]; // Teal-600, Teal-100, Teal-600
+    }
+
+    if (isAgentSpeaking) {
+      // Accent/Orange colors
+      return isDark
+        ? ["#FB923C", "#9A3412", "#FB923C"] // Orange-400, Orange-800, Orange-400
+        : ["#EA580C", "#FFEDD5", "#EA580C"]; // Orange-600, Orange-100, Orange-600
+    }
+
+    // Idle/Gray
+    return isDark
+      ? ["#4B5563", "#1F2937", "#4B5563"] // Gray-600, Gray-800, Gray-600
+      : ["#9CA3AF", "#F3F4F6", "#9CA3AF"]; // Gray-400, Gray-100, Gray-400
+  };
 
   return (
-    <div className="relative flex items-center justify-center">
-      {/* Outer rings */}
-      {rings.map((ring, index) => (
-        <div
-          key={ring}
-          className={`absolute rounded-full border-2 transition-all duration-300 ${
-            isActive 
-              ? `border-${activeColor} animate-wave-ripple` 
-              : 'border-muted'
-          }`}
-          style={{
-            width: `${baseSize + (ring * 60)}px`,
-            height: `${baseSize + (ring * 60)}px`,
-            animationDelay: `${index * 0.2}s`,
-            opacity: isActive ? 0.6 - (index * 0.15) : 0.3,
-          }}
+    <div className="relative flex flex-col items-center justify-center h-64 w-full overflow-hidden rounded-xl bg-secondary/20">
+      <div className="absolute inset-0 flex items-center justify-center opacity-80">
+        <Waves
+          amplitude={amplitude}
+          colors={getColors()}
         />
-      ))}
-      
-      {/* Center pulse */}
-      <div
-        className={`relative rounded-full flex items-center justify-center transition-all duration-300 ${
-          isActive 
-            ? `bg-${activeColor} shadow-[0_0_40px_hsl(var(--${activeColor})/0.6)] animate-glow-pulse` 
-            : 'bg-muted'
-        }`}
-        style={{
-          width: `${baseSize * (isActive ? scaleFactor : 1)}px`,
-          height: `${baseSize * (isActive ? scaleFactor : 1)}px`,
-        }}
-      >
-        {/* Inner glow */}
-        <div 
-          className={`absolute inset-0 rounded-full ${
-            isActive ? `bg-${activeColor}/20` : 'bg-muted/20'
-          }`}
-        />
-        
-        {/* Status indicator */}
-        <div className="relative z-10 text-center">
-          <div className={`text-4xl font-bold ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
-            {isUserSpeaking && '🎙️'}
-            {isAgentSpeaking && '🤖'}
-            {!isActive && '⏸️'}
-          </div>
-          <p className={`mt-2 text-sm font-medium ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
-            {isUserSpeaking && 'Listening...'}
-            {isAgentSpeaking && 'Speaking...'}
-            {!isActive && 'Ready'}
-          </p>
-        </div>
       </div>
 
-      {/* Level indicator bars (optional visual) */}
-      {isUserSpeaking && (
-        <div className="absolute -bottom-12 flex gap-1">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="w-1 bg-primary rounded-full transition-all duration-100"
-              style={{
-                height: `${Math.max(4, level * 40 * (1 + Math.random() * 0.5))}px`,
-                opacity: level > i / 20 ? 1 : 0.2,
-              }}
-            />
-          ))}
+      {/* Status Text Overlay */}
+      <div className="relative z-10 text-center mt-32">
+        <div className="text-4xl mb-2 transition-all duration-300 transform hover:scale-110">
+          {isUserSpeaking && '🎙️'}
+          {isAgentSpeaking && '🤖'}
+          {!isUserSpeaking && !isAgentSpeaking && '⏸️'}
         </div>
-      )}
+        <p className="text-sm font-medium text-muted-foreground">
+          {isUserSpeaking && 'Listening...'}
+          {isAgentSpeaking && 'Speaking...'}
+          {!isUserSpeaking && !isAgentSpeaking && 'Ready'}
+        </p>
+      </div>
     </div>
   );
 };
