@@ -147,7 +147,7 @@ def start_interview(req: StartRequest):
         session.questions.append(current)
         
     # Prepend welcome message
-    welcome_msg = "Hi! I'm your AI interviewer today. I'm looking forward to getting to know you. Let's start with... "
+    welcome_msg = "Hi! I'm Novexa, your AI interviewer today. I'm looking forward to getting to know you. Let's start with... "
     full_response = f"{welcome_msg}{current}" if current else welcome_msg
 
     return {"session_id": session_id, "next_question": full_response}

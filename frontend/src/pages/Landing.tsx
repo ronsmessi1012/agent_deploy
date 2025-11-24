@@ -11,10 +11,10 @@ const Landing = () => {
         <div className="text-center space-y-6">
           <div className="space-y-2">
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Voice Interview
+              Novexa AI
             </h1>
             <p className="text-xl text-muted-foreground">
-              AI-Powered Technical Interview Practice
+              The Ultimate AI Interviewer
             </p>
           </div>
 

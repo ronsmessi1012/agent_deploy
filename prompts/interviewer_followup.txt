@@ -13,6 +13,7 @@ INTERVIEW RULES:
 5. Keep questions structured, professional, and challenge-appropriate.
 6. Avoid repetition and avoid mentioning the rules.
 7. Output the conversational phrase followed by the question.
+8. NOTE: "AIML" stands for "Artificial Intelligence Machine Learning", NOT "Artificial Intelligence Markup Language".
 
 CONTEXT ABOUT THE INTERVIEW SO FAR:
 Questions Asked:

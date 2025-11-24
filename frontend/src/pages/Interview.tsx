@@ -30,6 +30,7 @@ const Interview = () => {
   const [questionCount, setQuestionCount] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
+  const [showQuestion, setShowQuestion] = useState(false);
 
   const { isRecording, audioLevel, startRecording, stopRecording, error: recorderError } = useAudioRecorder();
   const { transcript: liveTranscript, startListening, stopListening, resetTranscript, isSupported: isSpeechSupported } = useSpeechRecognition();
@@ -73,7 +74,9 @@ const Interview = () => {
         setTranscript(prev => [...prev, { type: 'question', text: response.text, timestamp: new Date() }]);
         setQuestionCount(prev => prev + 1);
 
+        setShowQuestion(false);
         await speak(response.text);
+        setShowQuestion(true);
 
         setTimeout(() => {
           startRecording();
@@ -108,7 +111,9 @@ const Interview = () => {
 
     const initInterview = async () => {
       setTranscript([{ type: 'question', text: firstQuestion, timestamp: new Date() }]);
+      setShowQuestion(false);
       await speak(firstQuestion);
+      setShowQuestion(true);
 
       setTimeout(() => {
         startRecording();
@@ -163,7 +168,7 @@ const Interview = () => {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -190,58 +195,30 @@ const Interview = () => {
         </div>
 
         {/* Main Interview Area */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Left: Voice Wave & Question */}
-          <Card className="p-8 flex flex-col items-center justify-center space-y-8">
-            <VoiceWave
-              isUserSpeaking={isRecording && !isProcessing}
-              isAgentSpeaking={isAgentSpeaking}
-              level={Math.max(audioLevel, agentAudioLevel)}
-            />
+        <Card className="p-12 flex flex-col items-center justify-center space-y-12 min-h-[500px]">
+          <VoiceWave
+            isUserSpeaking={isRecording && !isProcessing}
+            isAgentSpeaking={isAgentSpeaking}
+            level={Math.max(audioLevel, agentAudioLevel)}
+          />
 
-            <div className="text-center space-y-2 max-w-md">
-              <h2 className="text-lg font-semibold text-foreground">Current Question:</h2>
-              <p className="text-muted-foreground">{currentQuestion}</p>
-            </div>
-
-            {liveTranscript && (
-              <div className="w-full p-4 bg-secondary/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">You're saying:</p>
-                <p className="text-foreground">{liveTranscript}</p>
-              </div>
-            )}
-
-            {isProcessing && (
-              <p className="text-sm text-accent font-medium animate-pulse">
-                Processing your answer...
+          <div className="text-center space-y-4 max-w-xl">
+            <h2 className="text-lg font-semibold text-foreground">
+              {showQuestion ? 'Current Question:' : 'Interviewer is speaking...'}
+            </h2>
+            <div className={`transition-opacity duration-500 ${showQuestion ? 'opacity-100' : 'opacity-0'}`}>
+              <p className="text-xl text-foreground font-medium leading-relaxed">
+                {currentQuestion}
               </p>
-            )}
-          </Card>
+            </div>
+          </div>
 
-          {/* Right: Transcript */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Interview Transcript</h2>
-            <ScrollArea className="h-[500px] pr-4">
-              <div className="space-y-4">
-                {transcript.map((entry, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-lg ${entry.type === 'question'
-                      ? 'bg-primary/10 border-l-4 border-primary'
-                      : 'bg-secondary border-l-4 border-accent'
-                      }`}
-                  >
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {entry.type === 'question' ? '🤖 Interviewer' : '👤 You'} •{' '}
-                      {entry.timestamp.toLocaleTimeString()}
-                    </p>
-                    <p className="text-foreground">{entry.text}</p>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </Card>
-        </div>
+          {isProcessing && (
+            <p className="text-sm text-accent font-medium animate-pulse">
+              Processing your answer...
+            </p>
+          )}
+        </Card>
 
         {recorderError && (
           <Card className="p-4 bg-destructive/10 border-destructive">

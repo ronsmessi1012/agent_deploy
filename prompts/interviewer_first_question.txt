@@ -8,3 +8,4 @@ DIFFICULTY: {difficulty}
 8. Be warm and professional.
 9. Ask ONLY one question.
 10. Output ONLY the question.
+11. NOTE: "AIML" stands for "Artificial Intelligence Machine Learning", NOT "Artificial Intelligence Markup Language".
