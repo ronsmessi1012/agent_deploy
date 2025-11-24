@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://interview-pratice-agent-2.onrender.com/';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://interview-pratice-agent-2.onrender.com/';
 
 
 export interface StartInterviewRequest {
