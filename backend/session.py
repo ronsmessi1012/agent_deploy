@@ -1,6 +1,7 @@
 # backend/session.py
 import uuid
 from typing import List, Dict, Optional, Any
+from datetime import datetime
 
 class InterviewMemory:
     """
@@ -23,6 +24,7 @@ class InterviewSession:
         self.branch = branch
         self.specialization = specialization
         self.difficulty = difficulty
+        self.start_time: datetime = datetime.utcnow()  # Track interview start time
 
         # Q/A history
         self.questions: List[str] = []

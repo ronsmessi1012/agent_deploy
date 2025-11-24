@@ -21,17 +21,26 @@ from .summary import generate_session_summary
 from .tts import generate_speech
 from fastapi.responses import Response
 
+from datetime import datetime, timedelta
+
 app = FastAPI()
 
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],            # Allow all frontends (change to your domain later)
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],            # IMPORTANT for OPTIONS
-    allow_headers=["*"],            # IMPORTANT for Content-Type
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+# ---------------------------------------------
+# Constants for interview flow
+# ---------------------------------------------
+MAX_FOLLOWUPS_PER_Q = 3
+MIN_NEXT_QUESTIONS_TO_END = 5
+MIN_INTERVIEW_DURATION = timedelta(minutes=10)  # Minimum total interview time before allowing termination
 
 
 # ---------------------------------------------
@@ -278,11 +287,40 @@ def process_answer(req: AnswerRequest):
     session.advance_seed()
     session.next_question_count += 1
 
-    if session.completed and session.next_question_count >= MIN_NEXT_QUESTIONS_TO_END:
+    # Check if we should end based on question count AND duration
+    should_end_count = session.completed and session.next_question_count >= MIN_NEXT_QUESTIONS_TO_END
+    
+    # Check duration
+    elapsed = datetime.utcnow() - session.start_time
+    duration_met = elapsed >= MIN_INTERVIEW_DURATION
+
+    if should_end_count and duration_met:
         return {
             "session_id": session.id,
             "action": "end",
             "text": "Interview completed. Request /feedback or /end for summary."
+        }
+
+    # If we ran out of seeds but need to keep going (duration not met), generate dynamic question
+    if session.completed and not duration_met:
+        system_prompt_filled = INTERVIEW_FIRST.format(
+            role=session.role,
+            branch=session.branch,
+            specialization=session.specialization,
+            difficulty=session.difficulty,
+            name=session.name
+        )
+        user_prompt = "Generate a new, unique interview question for this role. Do not repeat previous questions."
+        new_q = model_client.generate(
+            system_prompt=system_prompt_filled,
+            user_prompt=user_prompt
+        ).strip()
+        
+        session.questions.append(new_q)
+        return {
+            "session_id": session.id,
+            "action": "next_question",
+            "text": new_q
         }
 
     next_seed = session.get_current_seed()

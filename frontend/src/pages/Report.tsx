@@ -38,7 +38,14 @@ const Report = () => {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="text-center space-y-2">
+        <div className="relative text-center space-y-2">
+          <Button
+            variant="ghost"
+            className="absolute left-0 top-0"
+            onClick={() => navigate('/')}
+          >
+            ← Back to Home
+          </Button>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Interview Report
           </h1>

@@ -12,9 +12,9 @@ interface UseSilenceDetectionOptions {
 export const useSilenceDetection = ({
   audioLevel,
   isRecording,
-  threshold = 0.25,       // Higher base threshold (ignore small sounds)
-  silenceDuration = 1000,  // Wait 1s before detecting silence
-  maxDuration = 13000,    // Auto-submit after 13s
+  threshold = 0.15,       // Lower threshold to catch quieter speech
+  silenceDuration = 2000,  // Wait 2s before detecting silence (prevents cut-offs)
+  maxDuration = 30000,    // Auto-submit after 30s
   onSilenceDetected,
 }: UseSilenceDetectionOptions) => {
   const [isSilent, setIsSilent] = useState(false);

@@ -4,6 +4,22 @@ from .llm import llm_generate
 import json
 
 
+def clean_json_output(raw_text: str) -> str:
+    """
+    Remove markdown code blocks (e.g. ```json ... ```) and extra whitespace.
+    """
+    text = raw_text.strip()
+    # Remove ```json ... ``` or ``` ... ```
+    if text.startswith("```"):
+        # Find first newline
+        first_newline = text.find("\n")
+        if first_newline != -1:
+            text = text[first_newline+1:]
+    if text.endswith("```"):
+        text = text[:-3]
+    return text.strip()
+
+
 def generate_session_summary(session) -> Dict[str, Any]:
     """
     Generate full structured summary:
@@ -105,19 +121,27 @@ Rules:
 - Strengths and weaknesses must be based on actual transcript and scores.
 """
 
-    raw = llm_generate(feedback_prompt)
+    llm_summary = {
+        "overall_feedback": "Feedback unavailable.",
+        "strengths": [],
+        "weaknesses": weak_areas,
+        "improvement_plan": [],
+        "practice_prompts": [],
+        "resource_links": []
+    }
 
-    try:
-        llm_summary = json.loads(raw)
-    except json.JSONDecodeError:
-        llm_summary = {
-            "overall_feedback": "Feedback unavailable.",
-            "strengths": [],
-            "weaknesses": weak_areas,
-            "improvement_plan": [],
-            "practice_prompts": [],
-            "resource_links": []
-        }
+    # Retry loop for robust JSON parsing
+    max_retries = 3
+    for attempt in range(max_retries):
+        raw = llm_generate(feedback_prompt)
+        cleaned = clean_json_output(raw)
+        try:
+            llm_summary = json.loads(cleaned)
+            break  # Success
+        except json.JSONDecodeError:
+            if attempt == max_retries - 1:
+                print(f"Failed to parse summary JSON after {max_retries} attempts.")
+            continue
 
     # Save memory (optional)
     session.memory.weak_areas = llm_summary.get("weaknesses", weak_areas)

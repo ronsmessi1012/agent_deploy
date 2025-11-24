@@ -31,10 +31,25 @@ const Interview = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [showQuestion, setShowQuestion] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   const { isRecording, audioLevel, startRecording, stopRecording, error: recorderError } = useAudioRecorder();
   const { transcript: liveTranscript, startListening, stopListening, resetTranscript, isSupported: isSpeechSupported } = useSpeechRecognition();
   const { isSpeaking: isAgentSpeaking, agentAudioLevel, speak, stop: stopSpeech } = useSpeechSynthesis();
+
+  // Timer effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedTime(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleSilenceDetected = useCallback(async () => {
     if (!isRecording || isProcessing) return;
@@ -101,6 +116,9 @@ const Interview = () => {
     audioLevel,
     isRecording,
     onSilenceDetected: handleSilenceDetected,
+    maxDuration: 30000,
+    silenceDuration: 2000,
+    threshold: 0.15,
   });
 
   useEffect(() => {
@@ -173,7 +191,11 @@ const Interview = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Interview in Progress</h1>
-            <p className="text-muted-foreground">Question {questionCount}</p>
+            <div className="flex items-center gap-4 text-muted-foreground">
+              <p>Question {questionCount}</p>
+              <span className="text-foreground/20">|</span>
+              <p className="font-mono">{formatTime(elapsedTime)}</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <ThemeToggle />

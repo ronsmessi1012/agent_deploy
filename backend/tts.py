@@ -1,79 +1,70 @@
 import os
 import requests
-from murf import Murf
+import time
+import json
 from functools import lru_cache
 
 MURF_API_KEY = os.getenv("MURF_API_KEY")
 
+# Global session for connection pooling
+session = requests.Session()
+if MURF_API_KEY:
+    session.headers.update({
+        "api-key": MURF_API_KEY,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    })
+
 @lru_cache(maxsize=100)
 def generate_speech(text: str, voice_id: str = "en-US-naomi") -> bytes:
     """
-    Generates speech from text using Murf AI SDK.
-    
-    Args:
-        text (str): The text to convert to speech.
-        voice_id (str): The voice ID to use. Defaults to "en-US-terra".
-        
-    Returns:
-        bytes: The audio content.
-        
-    Raises:
-        Exception: If the API call fails or API key is missing.
+    Generates speech from text using Murf AI API directly.
     """
     if not MURF_API_KEY:
         print("DEBUG: MURF_API_KEY is missing!")
-        raise Exception("MURF_API_KEY is not set in environment variables.")
+        raise Exception("MURF_API_KEY is not set.")
+
+    print(f"DEBUG: Generating speech for voice_id={voice_id}")
     
-    print(f"DEBUG: Using API Key: {MURF_API_KEY[:4]}...{MURF_API_KEY[-4:] if len(MURF_API_KEY) > 4 else ''}")
-    print(f"DEBUG: Generating speech via SDK for voice_id={voice_id}")
-
+    start_time = time.time()
+    
     try:
-        # Increase timeout to 180 seconds to avoid read timeouts
-        client = Murf(api_key=MURF_API_KEY, timeout=180)
-        
-        # The SDK returns a response object. Based on user snippet:
-        # res = client.text_to_speech.generate(...)
-        # We need to check what 'res' contains. Usually it has an audio_url or content.
-        # The user didn't show how to get the audio from 'res'.
-        # Assuming standard SDK pattern, it might return a model with 'audio_file' or similar.
-        # Let's try to inspect it or assume it returns a URL like the raw API.
-        
-        res = client.text_to_speech.generate(
-            text=text,
-            voice_id=voice_id,
-            format="MP3",
-            channel_type="MONO",
-            sample_rate=24000
-        )
-        
-        print(f"DEBUG: SDK Response: {res}")
-        
-        # If res is a pydantic model or dict, let's try to get audio_file
-        # Based on common SDKs, it might be res.audio_file or res['audioFile']
-        
-        audio_url = None
-        if hasattr(res, 'audio_file'):
-            audio_url = res.audio_file
-        elif isinstance(res, dict) and 'audioFile' in res:
-            audio_url = res['audioFile']
-        elif hasattr(res, 'audioFile'): # Case sensitivity check
-             audio_url = res.audioFile
-             
-        if not audio_url:
-             # Fallback: maybe it returns the url directly? Unlikely.
-             # Or maybe 'res' IS the url?
-             if isinstance(res, str) and res.startswith("http"):
-                 audio_url = res
-             else:
-                 print(f"ERROR: Could not extract audio URL from SDK response: {res}")
-                 raise Exception(f"Unknown SDK response format: {res}")
+        payload = {
+            "voiceId": voice_id,
+            "text": text,
+            "format": "MP3",
+            "channelType": "MONO",
+            "sampleRate": 24000
+        }
 
-        print(f"DEBUG: Downloading audio from {audio_url}")
-        audio_response = requests.get(audio_url)
+        # 1. Generate Speech URL
+        response = session.post(
+            "https://api.murf.ai/v1/speech/generate",
+            json=payload,
+            timeout=10  # Fast timeout for generation
+        )
+        response.raise_for_status()
+        
+        gen_time = time.time() - start_time
+        print(f"DEBUG: TTS Generation took {gen_time:.2f}s")
+
+        data = response.json()
+        audio_url = data.get("audioFile")
+        
+        if not audio_url:
+            raise Exception(f"No audioFile in response: {data}")
+
+        # 2. Download Audio
+        dl_start = time.time()
+        audio_response = session.get(audio_url, timeout=30)
         audio_response.raise_for_status()
+        
+        dl_time = time.time() - dl_start
+        total_time = time.time() - start_time
+        print(f"DEBUG: Audio Download took {dl_time:.2f}s (Total: {total_time:.2f}s)")
         
         return audio_response.content
 
     except Exception as e:
-        print(f"Error calling Murf SDK: {e}")
+        print(f"Error calling Murf API: {e}")
         raise e
