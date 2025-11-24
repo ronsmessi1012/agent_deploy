@@ -93,6 +93,10 @@ MIN_NEXT_QUESTIONS_TO_END = 5
 # ---------------------------------------------
 # Health Check
 # ---------------------------------------------
+@app.get("/")
+def root():
+    return {"message": "Novexa AI Interview Agent API is running."}
+
 @app.get("/status")
 def status():
     return {"status": "ok"}
