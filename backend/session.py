@@ -16,8 +16,9 @@ class InterviewMemory:
         self.resource_links: List[str] = []
 
 class InterviewSession:
-    def __init__(self, role, branch, specialization, difficulty, seed_questions=None):
+    def __init__(self, name, role, branch, specialization, difficulty, seed_questions=None):
         self.id: str = str(uuid.uuid4())
+        self.name = name
         self.role = role
         self.branch = branch
         self.specialization = specialization
@@ -90,6 +91,7 @@ class InterviewSession:
 SESSIONS: Dict[str, InterviewSession] = {}
 
 def create_session(
+    name: str,
     role: str,
     branch: str,
     specialization: str,
@@ -97,6 +99,7 @@ def create_session(
     seed_questions: Optional[List[str]] = None
 ) -> str:
     session = InterviewSession(
+        name=name,
         role=role,
         branch=branch,
         specialization=specialization,

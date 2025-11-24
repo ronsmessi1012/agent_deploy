@@ -64,27 +64,30 @@ def llm_decide_and_generate(session: InterviewSession,
       }
     This function asks the model to output a JSON object on one line. Fallback heuristics applied if parsing fails.
     """
-    # Build the system prompt (context included)
-    system_prompt = role_prompt_system.format(
+    # Fill system prompt
+    system_prompt_filled = role_prompt_system.format(
         role=session.role,
         branch=session.branch,
         specialization=session.specialization,
         difficulty=session.difficulty,
         questions="\n".join(session.questions),
         answers="\n".join(session.answers),
-        latest_answer=latest_answer
+        latest_answer=latest_answer,
+        name=session.name
     )
 
     user_prompt = (
         "Decide whether the candidate's latest answer needs a follow-up or we should proceed to the next seed question.\n"
         "Output EXACTLY a JSON object on a single line with fields: action, strength, follow_up_question.\n"
         " - action: one of \"follow_up\", \"next_question\", \"end\".\n"
+        "   * Set to \"follow_up\" and ask \"Are you sure you want to end the interview?\" if the user asks to stop but hasn't confirmed yet.\n"
+        "   * Set to \"end\" ONLY if the user confirms they want to stop after being asked.\n"
         " - strength: one of \"weak\", \"moderate\", \"strong\" (your estimation of the latest answer).\n"
         " - follow_up_question: a single concise question (only if action is follow_up). If action is not follow_up, provide empty string.\n"
         "Do not include any extra text or explanation—only the JSON.\n"
     )
 
-    raw = model_client.generate(system_prompt=system_prompt, user_prompt=user_prompt)
+    raw = model_client.generate(system_prompt=system_prompt_filled, user_prompt=user_prompt)
 
     # Attempt to parse JSON substring
     try:

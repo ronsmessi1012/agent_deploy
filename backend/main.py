@@ -44,6 +44,7 @@ model_client = OllamaClient(model="llama3.1:8b")
 # Request Models
 # ---------------------------------------------
 class StartRequest(BaseModel):
+    name: str
     role: str
     branch: Optional[str] = None
     specialization: Optional[str] = None
@@ -113,7 +114,8 @@ def start_interview(req: StartRequest):
             role=req.role,
             branch=req.branch or "",
             specialization=req.specialization or "",
-            difficulty=req.difficulty
+            difficulty=req.difficulty,
+            name=req.name
         )
         seed_q = model_client.generate(system_prompt=system_prompt_filled, user_prompt="").strip()
 
@@ -133,6 +135,7 @@ def start_interview(req: StartRequest):
 
     # Create session
     session_id = create_session(
+        name=req.name,
         role=req.role,
         branch=req.branch or "",
         specialization=req.specialization or "",
@@ -147,7 +150,7 @@ def start_interview(req: StartRequest):
         session.questions.append(current)
         
     # Prepend welcome message
-    welcome_msg = "Hi! I'm Novexa, your AI interviewer today. I'm looking forward to getting to know you. Let's start with... "
+    welcome_msg = f"Hi {req.name}! I'm Novexa, your AI interviewer today. I'm looking forward to getting to know you. Let's start with... "
     full_response = f"{welcome_msg}{current}" if current else welcome_msg
 
     return {"session_id": session_id, "next_question": full_response}
@@ -185,6 +188,17 @@ def process_answer(req: AnswerRequest):
     # Determine if follow-up is needed
     det_strength = decide_followup_rule(session, req.answer, rules_cfg)
 
+    # Check for explicit confirmation to end
+    if session.questions:
+        last_q = session.questions[-1].lower()
+        ans_lower = req.answer.lower()
+        if "are you sure" in last_q and any(w in ans_lower for w in ["yes", "yeah", "sure", "correct", "right"]):
+            return {
+                "session_id": session.id,
+                "action": "end",
+                "text": "Thank you for your time. Ending the interview now."
+            }
+
     # Consult hybrid LLM engine
     decision = llm_decide_and_generate(
         session=session,
@@ -199,6 +213,13 @@ def process_answer(req: AnswerRequest):
     # Normalize outputs
     if action not in ("follow_up", "next_question", "end"):
         action = "follow_up" if det_strength in ("weak", "moderate") else "next_question"
+
+    if action == "end":
+        return {
+            "session_id": session.id,
+            "action": "end",
+            "text": "Thank you for your time. Ending the interview now."
+        }
 
     # -------------------------
     # FOLLOW-UP LOGIC
@@ -225,7 +246,8 @@ def process_answer(req: AnswerRequest):
                 role=session.role,
                 branch=session.branch,
                 specialization=session.specialization,
-                difficulty=session.difficulty
+                difficulty=session.difficulty,
+                name=session.name
             )
             user_prompt = f"Rephrase the following interview question concisely:\n{next_seed}"
             rephrased = model_client.generate(
@@ -270,7 +292,8 @@ def process_answer(req: AnswerRequest):
         role=session.role,
         branch=session.branch,
         specialization=session.specialization,
-        difficulty=session.difficulty
+        difficulty=session.difficulty,
+        name=session.name
     )
     user_prompt = f"Rephrase the following interview question concisely:\n{next_seed}"
     rephrased = model_client.generate(

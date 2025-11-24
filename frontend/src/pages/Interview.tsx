@@ -213,10 +213,18 @@ const Interview = () => {
             </div>
           </div>
 
+          {liveTranscript && (
+            <div className="w-full max-w-xl p-4 bg-secondary/50 rounded-lg animate-fade-in">
+              <p className="text-sm text-muted-foreground mb-1">You're saying:</p>
+              <p className="text-foreground">{liveTranscript}</p>
+            </div>
+          )}
+
           {isProcessing && (
-            <p className="text-sm text-accent font-medium animate-pulse">
-              Processing your answer...
-            </p>
+            <div className="flex items-center gap-2 text-accent font-medium animate-pulse">
+              <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              <span>Processing...</span>
+            </div>
           )}
         </Card>
 

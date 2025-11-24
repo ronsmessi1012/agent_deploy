@@ -22,6 +22,11 @@ def generate_session_summary(session) -> Dict[str, Any]:
     # 1. Transcript + per-answer scoring
     # -------------------------------------------------------
     for q, a in zip(session.questions, session.answers):
+        # Skip meta-questions
+        q_lower = q.lower()
+        if "are you sure" in q_lower or "want to end" in q_lower:
+            continue
+
         score = score_answer(a, q, session.role)
         scores_list.append(score)
         transcript.append({

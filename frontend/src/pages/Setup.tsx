@@ -12,8 +12,9 @@ const Setup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [formData, setFormData] = useState({
+    name: '',
     role: '',
     branch: '',
     specialization: '',
@@ -22,8 +23,8 @@ const Setup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.role || !formData.branch || !formData.specialization) {
+
+    if (!formData.name || !formData.role || !formData.branch || !formData.specialization) {
       toast({
         title: 'Missing Information',
         description: 'Please fill in all fields',
@@ -35,7 +36,7 @@ const Setup = () => {
     setIsLoading(true);
     try {
       const response = await interviewAPI.startInterview(formData);
-      
+
       navigate('/interview', {
         state: {
           sessionId: response.session_id,
@@ -67,6 +68,17 @@ const Setup = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                placeholder="Your Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
               <Input
@@ -127,7 +139,7 @@ const Setup = () => {
               >
                 {isLoading ? 'Starting...' : 'Begin Interview'}
               </Button>
-              
+
               <Button
                 type="button"
                 variant="outline"

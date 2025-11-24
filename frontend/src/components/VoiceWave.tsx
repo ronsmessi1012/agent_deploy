@@ -55,9 +55,7 @@ export const VoiceWave = ({ isUserSpeaking, isAgentSpeaking, level }: VoiceWaveP
       {/* Status Text Overlay */}
       <div className="relative z-10 text-center mt-32">
         <div className="text-4xl mb-2 transition-all duration-300 transform hover:scale-110">
-          {isUserSpeaking && '🎙️'}
-          {isAgentSpeaking && '🤖'}
-          {!isUserSpeaking && !isAgentSpeaking && '⏸️'}
+          {/* Emojis removed as per user request */}
         </div>
         <p className="text-sm font-medium text-muted-foreground">
           {isUserSpeaking && 'Listening...'}
