@@ -1,7 +1,6 @@
 import requests
 import os
 from abc import ABC, abstractmethod
-import google.generativeai as genai
 
 # -----------------------------
 # Base Interface
@@ -14,59 +13,40 @@ class ModelClient(ABC):
 
 
 # -----------------------------
-# Dummy Model Client
-# -----------------------------
-class DummyModelClient(ModelClient):
-
-    def generate(self, system_prompt: str, user_prompt: str) -> str:
-        return f"(dummy) System: {system_prompt[:30]} | User: {user_prompt[:30]}..."
-
-
-# -----------------------------
-# Ollama Model Client
-# -----------------------------
-class OllamaClient(ModelClient):
-    def __init__(self, model: str = "llama3.1:8b"):
-        self.model = model
-
-    def generate(self, system_prompt: str, user_prompt: str) -> str:
-        url = "http://localhost:11434/api/generate"
-
-        full_prompt = f"{system_prompt}\n\n{user_prompt}"
-
-        payload = {
-            "model": self.model,
-            "prompt": full_prompt,
-            "stream": False
-        }
-
-        response = requests.post(url, json=payload)
-        response.raise_for_status()
-        data = response.json()
-
-        return data.get("response", "")
-
-# -----------------------------
 # Gemini Model Client
 # -----------------------------
 class GeminiClient(ModelClient):
-    def __init__(self, model: str = "gemini-pro"):
+    def __init__(self, model: str = "gemini-flash-latest"):
         self.model_name = model
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        if not self.api_key:
             print("WARNING: GEMINI_API_KEY not found in environment variables.")
-        else:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel(model)
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
+        if not self.api_key:
+            return "Error: Gemini API Key not configured."
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+        
+        # Gemini doesn't have a strict "system prompt" in the same way, but we can prepend it
+        full_prompt = f"{system_prompt}\n\n{user_prompt}"
+        
+        payload = {
+            "contents": [{
+                "parts": [{"text": full_prompt}]
+            }]
+        }
+
         try:
-            # Gemini doesn't have a strict "system prompt" in the same way, but we can prepend it
-            full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = self.model.generate_content(full_prompt)
-            return response.text
+            response = requests.post(url, json=payload)
+            response.raise_for_status()
+            data = response.json()
+            # Extract text from response
+            return data['candidates'][0]['content']['parts'][0]['text']
         except Exception as e:
             print(f"Gemini API Error: {e}")
+            if 'response' in locals() and response.text:
+                 print(f"Response content: {response.text}")
             return "Error generating response from Gemini."
 
 # llm.py (add this at the bottom)

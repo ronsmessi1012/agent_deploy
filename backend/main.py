@@ -11,7 +11,7 @@ dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 # Internal modules
-from llm import OllamaClient, DummyModelClient, GeminiClient
+from llm import GeminiClient
 from session import create_session, get_session
 from roles_loader import load_role, pick_seed_question
 from actions import decide_followup_rule, llm_decide_and_generate
@@ -46,9 +46,7 @@ MIN_INTERVIEW_DURATION = timedelta(minutes=10)  # Minimum total interview time b
 # ---------------------------------------------
 # Model Client
 # ---------------------------------------------
-# model_client = OllamaClient(model="llama3.1:8b")
-# model_client = DummyModelClient()
-model_client = GeminiClient(model="gemini-1.5-flash")
+model_client = GeminiClient(model="gemini-flash-latest")
 
 # ---------------------------------------------
 # Request Models
